@@ -109,7 +109,7 @@ journalctl -S "-30m or -1h" -xeu service
 netstat -ant | grep EST | grep 80 | awk '{print $5}' | sed -e "s/::ffff://" | awk -F: '{print $1}' | sort | uniq -c
 
 # SSL certificate check
-openssl s_client -connect mail02.inet.sy:465 -servername mail02.inet.sy 2>/dev/null | openssl x509 -noout -dates
+openssl s_client -connect mail.example.com:465 -servername mail.example.com 2>/dev/null | openssl x509 -noout -dates
 ```
 
 ### File Comparison
@@ -123,9 +123,9 @@ usermod -L -e 1 username  # Lock user and expire account
 ```
 
 ### LVM Management
-```markdown
+
 See the [LVM Commands](#lvm-commands) section below for detailed LVM operations.
-```
+
 
 ### Dotnet Build Commands
 ```bash
@@ -158,7 +158,7 @@ SET GLOBAL sql_slave_skip_counter = 1;
 START SLAVE;
 
 -- Database dump
-mysqldump --routines --skip-lock-tables --master-data --databases postfix radius | gzip -c | ssh user@host "cat > ~/replicarestore_$(date +%Y%m%d).sql.gz"
+mysqldump --routines --skip-lock-tables --master-data --databases DB1 DB2 | gzip -c | ssh user@host "cat > ~/replicarestore_$(date +%Y%m%d).sql.gz"
 
 -- List databases for dropping (excluding system DBs)
 mysql -u admin -p$(cat /etc/psa/.psa.shadow) -e "SELECT CONCAT('DROP DATABASE ', SCHEMA_NAME, ';') FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')"
@@ -200,7 +200,7 @@ slave_compressed_protocol=1
 ```
 
 ### Database Recovery Tips
-```markdown
+
 1. Set `innodb_force_recovery` to 1 and start MariaDB
 2. If that fails, try value 2
 3. If successful, dump databases with `mariadb-dump`
@@ -208,7 +208,7 @@ slave_compressed_protocol=1
 5. Drop and recreate corrupted databases
 6. Remove ib* files from data directory
 7. Restore from backups/dumps
-```
+
 
 ## Oracle Database Commands
 
@@ -226,79 +226,74 @@ DATA_PUMP_DIR = /u01/app/oracle/admin/orcl/dpdump/
 
 #### Schema-level Export
 ```bash
-expdp \'/ as sysdba\' directory=DATA_PUMP_DIR dumpfile=x-$(date +%Y_%m_%d).dmp logfile=sadcop_struct-$(date +%Y_%m_%d).log schemas=x,y
+expdp \'/ as sysdba\' directory=DATA_PUMP_DIR dumpfile=dump-$(date +%Y_%m_%d).dmp logfile=dump-$(date +%Y_%m_%d).log schemas=x,y
 
-expdp \'/ as sysdba\' directory=DATA_PUMP_DIR dumpfile=MahroukatMail-$(date +%Y_%m_%d).dmp logfile=MahroukatMail-$(date +%Y_%m_%d).log schemas=TWRMAIL,USERS_MANAGEMENT,BRANCHES
 ```
-
 #### Full Database Export
 ```bash
-expdp \'/ as sysdba\' full=Y directory=backup dumpfile=3ierpDB-$(date +%Y_%m_%d).dmp logfile=3ierpDB-$(date +%Y_%m_%d).log
+expdp \'/ as sysdba\' full=Y directory=backup dumpfile=dmp-$(date +%Y_%m_%d).dmp logfile=dmp-$(date +%Y_%m_%d).log
 
-expdp \'sys/P4ssw0rd13@localhost:1521/oraadra as sysdba\' full=Y directory=backup dumpfile=3ierpDB-Adra_$(date +%Y_%m_%d-%s).dmp logfile=3ierpDB-Adra_$(date +%Y_%m_%d-%s).log
+expdp \'sys/Password@localhost:1521/orcl as sysdba\' full=Y directory=backup dumpfile=dump_$(date +%Y_%m_%d-%s).dmp logfile=dump$(date +%Y_%m_%d-%s).log
 ```
 
 #### Schema-level Import
 ```bash
-impdp \'/ as sysdba\' directory=DATA_PUMP_DIR dumpfile=saddb019.dmp logfile=saddb019_21_08_2024.log schemas=SADCOP
-
-impdp \'/ as sysdba\' directory=DATA_PUMP_DIR dumpfile=TWRMAIL-2024_11_10.dmp logfile=TWRMAIL-2024_11_10.log schemas=TWRMAIL
+impdp \'/ as sysdba\' directory=DATA_PUMP_DIR dumpfile=schema-dump.dmp logfile=schema-dump_$(date +%Y_%m_%d-%s).log schemas=schema1
 ```
 
 #### Full Database Import
 ```bash
 impdp \'/ as sysdba\' full=Y directory=backup dumpfile=FULL_EXPDP_DB_THU.DMP logfile=FULL_impdp_DB_THU.DMP-$(date +%Y_%m_%d).log
 
-impdp \'sys/P4ssw0rd12#@192.168.1.108:1521/orcl as sysdba\' full=Y directory=backup dumpfile=3ierpDB-2024_08_26.dmp logfile=3ierpDB.dmp-$(date +%Y_%m_%d-%s).log
 ```
 
 #### Schema-specific Import with Remote Connection
 ```bash
-impdp \'sys/P4ssw0rd13@192.168.1.108:1521/oraadra as sysdba\' directory=backup dumpfile=3ierpdb_amlaak_13-10-2024.DMP logfile=I4AWORKFLOW-$(date +%Y_%m_%d-%s).log schemas=I4AWORKFLOW
+impdp \'sys/password@192.168.1.1:1521/orcl as sysdba\' full=Y directory=backup dumpfile=FULL_EXPDP_DB_THU.dmp logfile=FULL_impdp_DB_THU-$(date +%Y_%m_%d-%s).log
 ```
 
 ### Traditional Export/Import (exp/imp)
 ```bash
-imp \'/ as sysdba\' fromuser=SADCOP touser=SADCOP file=/u01/app/oracle/admin/orcl/dpdump/saddb019.dmp log=/u01/app/oracle/admin/orcl/dpdump/saddb019.log
+imp \'/ as sysdba\' fromuser=schema1 touser=schema2 file=/u01/app/oracle/admin/orcl/dpdump/dump-ex.dmp log=/u01/app/oracle/admin/orcl/dpdump/dump-ex.log
 
-exp \'/ as sysdba\' owner=SADCOP_TST,REPMAN file=/home/oracle/SADCOP_TST_REPMAN-$(date +%Y_%m_%d).dmp log=/home/oracle/SADCOP_TST_REPMAN-$(date +%Y_%m_%d).log
+exp \'/ as sysdba\' owner=schema1,schema2 file=/home/oracle/schema1-schema2-$(date +%Y_%m_%d).dmp log=/home/oracle/schema1-schema2-$(date +%Y_%m_%d).log
 ```
 
 ### User Management
 
 #### Create User with Privileges
 ```sql
-CREATE USER SADCOP IDENTIFIED BY SADCOP
-  DEFAULT TABLESPACE SADCOP_OPR
+CREATE USER User IDENTIFIED BY User
+  DEFAULT TABLESPACE User_OPR
   TEMPORARY TABLESPACE TEMP
-QUOTA UNLIMITED ON SADCOP_OPR_IDX
-QUOTA UNLIMITED ON SADCOP_SCD
-QUOTA UNLIMITED ON SADCOP_OPR
-QUOTA UNLIMITED ON SADCOP_SCD_IDX
-QUOTA UNLIMITED ON SADCOP_DCD
-QUOTA UNLIMITED ON SADCOP_DCD_IDX;
+QUOTA UNLIMITED ON User_OPR_IDX
+QUOTA UNLIMITED ON User_SCD
+QUOTA UNLIMITED ON User_OPR
+QUOTA UNLIMITED ON User_SCD_IDX
+QUOTA UNLIMITED ON User_DCD
+QUOTA UNLIMITED ON User_DCD_IDX;
 
-GRANT CREATE PUBLIC SYNONYM TO SADCOP;
-GRANT CREATE ANY SEQUENCE TO SADCOP;
-GRANT DROP PUBLIC SYNONYM TO SADCOP;
-GRANT CREATE ANY SNAPSHOT TO SADCOP;
-GRANT DROP ANY SNAPSHOT TO SADCOP;
-GRANT DROP ANY SEQUENCE TO SADCOP;
-GRANT UNLIMITED TABLESPACE TO SADCOP;
-GRANT CONNECT TO SADCOP;
-GRANT RESOURCE TO SADCOP;
-GRANT DBA TO SADCOP;
-GRANT SELECT ANY DICTIONARY TO SADCOP;
+GRANT CREATE PUBLIC SYNONYM TO User;
+GRANT CREATE ANY SEQUENCE TO User;
+GRANT DROP PUBLIC SYNONYM TO User;
+GRANT CREATE ANY SNAPSHOT TO User;
+GRANT DROP ANY SNAPSHOT TO User;
+GRANT DROP ANY SEQUENCE TO User;
+GRANT UNLIMITED TABLESPACE TO User;
+GRANT CONNECT TO User;
+GRANT RESOURCE TO User;
+GRANT DBA TO User;
+GRANT SELECT ANY DICTIONARY TO User;
 
 -- For 12c:
-GRANT EXECUTE ON sys.dbms_crypto TO SADCOP;
+GRANT EXECUTE ON sys.dbms_crypto TO User;
 
 -- Additional grants:
-GRANT DROP ANY MATERIALIZED VIEW TO SADCOP;
-GRANT CREATE ANY MATERIALIZED VIEW TO SADCOP;
+GRANT DROP ANY MATERIALIZED VIEW TO User;
+GRANT CREATE ANY MATERIALIZED VIEW TO User;
 
-ALTER USER SADCOP QUOTA UNLIMITED ON sadcop_spr;
-ALTER USER SADCOP QUOTA UNLIMITED ON sadcop_spr_idx;
+ALTER USER User QUOTA UNLIMITED ON User_spr;
+ALTER USER User QUOTA UNLIMITED ON User_spr_idx;
 ```
 
 ### Database Administration
@@ -310,15 +305,14 @@ SELECT DIRECTORY_NAME, DIRECTORY_PATH FROM dba_directories WHERE DIRECTORY_NAME 
 
 #### Drop Schema
 ```sql
-DROP USER SADCOP_TST CASCADE;
-DROP USER TWRMAIL CASCADE;
+DROP USER User_TST CASCADE;
 ```
 
 #### Kill Sessions
 ```sql
 -- Generate kill statements for specific users
 SELECT 'alter system kill session ''' || sid || ',' || serial# || ''' immediate;' stmts 
-FROM v$session WHERE username = 'SADCOP_TST';
+FROM v$session WHERE username = 'User_TST';
 
 -- Execute kill session
 ALTER SYSTEM KILL SESSION '38,50144';
@@ -326,8 +320,8 @@ ALTER SYSTEM KILL SESSION '38,50144';
 
 #### Rename Schema
 ```sql
-SELECT user#,NAME FROM SYS.user$ WHERE NAME='DIWAN';
-UPDATE USER$ SET NAME='DIWAN_04-9-2023' WHERE USER#=154;
+SELECT user#,NAME FROM SYS.user$ WHERE NAME='usertest';
+UPDATE USER$ SET NAME='realuser' WHERE USER#=154;
 ```
 
 #### Clean Up Non-Oracle Schemas
@@ -362,7 +356,6 @@ df -h
 lsblk
 
 # Rescan disks
-echo "- - -" > /sys/class/scsi_host/host{number}/scan
 echo "- - -" | tee /sys/class/scsi_host/host*/scan
 
 # Rescan disk size
