@@ -89,12 +89,16 @@ sudo date -s "$(curl -s --head http://google.com | grep ^Date: | sed 's/Date: //
 # Find and remove files older than 7 days
 find /path/to/ -type f -mtime +7 -name '*.gz' -execdir rm -- '{}' \;
 find /path/to/ -type f -mtime +7 -name '*.gz' -delete;
+# replace two IPs in multiple files
+find . -type f -name "*" -exec sed -i'' -e 's/10\.10\.10\.1/10\.10\.10\.2/g' {} +
 
 # Find large files
 find / -xdev -size +1G -printf "%k  %p\n" | sort -n
 
 # Remove Windows line endings
 sed -i 's/\r//g' filename
+
+
 ```
 
 ### System Utilities
@@ -143,6 +147,8 @@ done
 cat file | grep -v "#"  # Exclude lines with #
 ```
 
+
+
 ## Database-Related Commands
 
 ### PostgreSQL
@@ -152,6 +158,27 @@ DROP DATABASE mydb WITH (FORCE);  # Force drop database
 
 ### MySQL/MariaDB
 ```sql
+LOAD DATA INFILE '/var/lib/mysql-files/example.csv'
+INTO TABLE some_table
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(first Col, Second Col, 3rd Col);
+
+--FIELDS TERMINATED BY ',' (Columns in the CSV are separated by commas)
+--ENCLOSED BY '"' (Fields may be enclosed in double quotes)
+--LINES TERMINATED BY '\n' ( Each line in the file ends with a newline character)
+--IGNORE 1 ROWS (Skips the first row of the file (typically used to skip header rows))
+```
+
+```sql
+-- to check if there is open sessions on DB
+select count(*) from radacct where acctstoptime  IS  NULL ; 
+-- to close all open sessions
+update radacct set acctstoptime='Now' WHERE acctstoptime IS  NULL ;
+```
+```sql
 -- Replication commands
 STOP SLAVE;
 SET GLOBAL sql_slave_skip_counter = 1;
@@ -159,7 +186,7 @@ START SLAVE;
 
 -- Database dump
 mysqldump --routines --skip-lock-tables --master-data --databases DB1 DB2 | gzip -c | ssh user@host "cat > ~/replicarestore_$(date +%Y%m%d).sql.gz"
-
+mysqldump --routines --skip-lock-tables --databases someDB -u user --password='yourPassword' | gzip -c > /mnt/nfs/example/daily_backup/someBackup_$(date +\%F-\%s).sql.gz
 -- List databases for dropping (excluding system DBs)
 mysql -u admin -p$(cat /etc/psa/.psa.shadow) -e "SELECT CONCAT('DROP DATABASE ', SCHEMA_NAME, ';') FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')"
 
