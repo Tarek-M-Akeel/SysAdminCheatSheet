@@ -13,6 +13,7 @@
    * [LVM Management](#lvm-management)
    * [Dotnet Build Commands](#dotnet-build-commands)
    * [Text Processing](#text-processing)
+   * [Virtualization](#Virtualization)
 - [Database-Related Commands](#database-related-commands)
    * [PostgreSQL](#postgresql)
    * [MySQL/MariaDB](#mysqlmariadb)
@@ -146,7 +147,18 @@ done
 ```bash
 cat file | grep -v "#"  # Exclude lines with #
 ```
+## Virtualization
 
+### ESXI
+Enabling SNMP on ESXI host 
+```bash
+esxcli system hostname set --host="ex.example.com"
+esxcli system hostname set --fqdn="ex.example.com"
+esxcli system snmp set --enable true
+esxcli system snmp set --communities "your_comunity"
+esxcli system snmp set --targets "ip_for_monitor_sys@162/your_comunity"  # (Optional, for traps)
+/etc/init.d/snmpd restart
+```
 
 
 ## Database-Related Commands
