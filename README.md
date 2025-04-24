@@ -13,7 +13,7 @@
    * [LVM Management](#lvm-management)
    * [Dotnet Build Commands](#dotnet-build-commands)
    * [Text Processing](#text-processing)
-   * [Virtualization](#Virtualization)
+- [Virtualization](#Virtualization)
 - [Database-Related Commands](#database-related-commands)
    * [PostgreSQL](#postgresql)
    * [MySQL/MariaDB](#mysqlmariadb)
